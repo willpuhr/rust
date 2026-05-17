@@ -1,15 +1,21 @@
 error[E0807]: the `?` operator cannot be used to return from inside a `const` initializer
-  --> $DIR/question-mark-returning-from-initializer.rs:10:24
+  --> $DIR/question-mark-returning-from-initializer.rs:10:10
+   |
+LL |     foo()?
+   |          ^
+
+error[E0807]: the `?` operator cannot be used to return from inside a `const` initializer
+  --> $DIR/question-mark-returning-from-initializer.rs:14:24
    |
 LL |     const A: () = foo()?;
    |                        ^
 
 error[E0807]: the `?` operator cannot be used to return from inside a `static` initializer
-  --> $DIR/question-mark-returning-from-initializer.rs:11:25
+  --> $DIR/question-mark-returning-from-initializer.rs:15:25
    |
 LL |     static B: () = foo()?;
    |                         ^
 
-error: aborting due to 2 previous errors
+error: aborting due to 3 previous errors
 
 For more information about this error, try `rustc --explain E0807`.
