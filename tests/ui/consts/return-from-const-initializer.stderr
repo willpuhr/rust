@@ -1,0 +1,22 @@
+error[E0572]: return statement outside of function body
+  --> $DIR/return-from-const-initializer.rs:2:5
+   |
+LL |     return Ok(());
+   |     ^^^^^^^^^^^^^
+
+error[E0807]: cannot return from inside a `const` initializer
+  --> $DIR/return-from-const-initializer.rs:8:9
+   |
+LL |         return Ok(());
+   |         ^^^^^^^^^^^^^
+
+error[E0807]: cannot return from inside a `static` initializer
+  --> $DIR/return-from-const-initializer.rs:13:9
+   |
+LL |         return Ok(());
+   |         ^^^^^^^^^^^^^
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0572, E0807.
+For more information about an error, try `rustc --explain E0572`.
