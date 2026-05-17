@@ -20,7 +20,7 @@ use rustc_hir as hir;
 use rustc_hir::def::{CtorKind, DefKind, Res};
 use rustc_hir::def_id::DefId;
 use rustc_hir::lang_items::LangItem;
-use rustc_hir::{ConstContext, ExprKind, HirId, QPath, find_attr, is_range_literal};
+use rustc_hir::{BodyOwnerKind, ConstContext, ExprKind, HirId, QPath, find_attr, is_range_literal};
 use rustc_hir_analysis::NoVariantNamed;
 use rustc_hir_analysis::errors::NoFieldOnType;
 use rustc_hir_analysis::hir_ty_lowering::HirTyLowerer as _;
@@ -44,8 +44,9 @@ use crate::errors::{
     AddressOfTemporaryTaken, BaseExpressionDoubleDot, BaseExpressionDoubleDotAddExpr,
     BaseExpressionDoubleDotRemove, CantDereference, FieldMultiplySpecifiedInInitializer,
     FunctionalRecordUpdateOnNonStruct, HelpUseLatestEdition, NakedAsmOutsideNakedFn,
-    NoFieldOnVariant, QuestionMarkInConst, ReturnLikeStatementKind, ReturnStmtOutsideOfFnBody,
-    StructExprNonExhaustive, TypeMismatchFruTypo, YieldExprOutsideOfCoroutine,
+    NoFieldOnVariant, QuestionMarkInConst, ReturnFromConst, ReturnLikeStatementKind,
+    ReturnStmtOutsideOfFnBody, StructExprNonExhaustive, TypeMismatchFruTypo,
+    YieldExprOutsideOfCoroutine,
 };
 use crate::op::contains_let_in_chain;
 use crate::{
@@ -862,15 +863,26 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         expr: &'tcx hir::Expr<'tcx>,
     ) -> Ty<'tcx> {
         if self.ret_coercion.is_none() {
-            let expectation = if let Some(desugar_kind) = expr.span.desugaring_kind()
-                && desugar_kind == DesugaringKind::QuestionMark
-                && let Some(ccx) = self.tcx.hir_body_const_context(self.body_id)
+            let expectation = if let Some(ccx) = self.tcx.hir_body_const_context(self.body_id)
                 && matches!(ccx, ConstContext::Const { .. } | ConstContext::Static(_))
             {
-                let guaranteed = self
-                    .tcx
-                    .dcx()
-                    .emit_err(QuestionMarkInConst { span: expr.span, keyword: ccx.keyword_name() });
+                let guaranteed = if let Some(desugar_kind) = expr.span.desugaring_kind()
+                    && desugar_kind == DesugaringKind::QuestionMark
+                {
+                    self.tcx.dcx().emit_err(QuestionMarkInConst {
+                        span: expr.span,
+                        keyword: ccx.keyword_name(),
+                    })
+                } else {
+                    if self.find_nearest_return_scope(expr.hir_id).is_some() {
+                        self.tcx.dcx().emit_err(ReturnFromConst {
+                            span: expr.span,
+                            keyword: ccx.keyword_name(),
+                        })
+                    } else {
+                        self.emit_return_outside_of_fn_body(expr, ReturnLikeStatementKind::Return)
+                    }
+                };
                 // Suppresses incorrect and unnecessary "E0283: type annotations needed"
                 ExpectHasType(Ty::new_error(self.tcx, guaranteed))
             } else {
@@ -914,6 +926,28 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             }
         }
         self.tcx.types.never
+    }
+
+    /// Finds the nearest existing enclosing scope which accepts `return`
+    /// This search does not stop at `const` or `static` boundaries
+    ///
+    /// Returns `None` if it reaches the root without finding a valid scope
+    fn find_nearest_return_scope(&self, original_expr_id: HirId) -> Option<HirId> {
+        for parent in self.tcx.hir_parent_id_iter(original_expr_id) {
+            if self.is_return_scope(parent) {
+                return Some(parent);
+            }
+        }
+        None
+    }
+
+    fn is_return_scope(&self, hir_id: HirId) -> bool {
+        let node = self.tcx.hir_node(hir_id);
+        let Some((def_id, _)) = node.associated_body() else { return false };
+        match self.tcx.hir_body_owner_kind(def_id) {
+            BodyOwnerKind::Fn | BodyOwnerKind::Closure => true,
+            _ => false,
+        }
     }
 
     fn check_expr_become(
