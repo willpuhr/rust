@@ -1,5 +1,5 @@
 error[E0767]: use of unreachable label `'a`
-  --> $DIR/cross-const-control-flow-125846.rs:9:25
+  --> $DIR/cross-const-control-flow-125846.rs:19:25
    |
 LL |     'a: { const { break 'a } }
    |     --                  ^^ unreachable label `'a`
@@ -9,7 +9,7 @@ LL |     'a: { const { break 'a } }
    = note: labels are unreachable through functions, closures, async blocks and modules
 
 error[E0767]: use of unreachable label `'a`
-  --> $DIR/cross-const-control-flow-125846.rs:22:28
+  --> $DIR/cross-const-control-flow-125846.rs:32:28
    |
 LL |     'a: { const { continue 'a } }
    |     --                     ^^ unreachable label `'a`
@@ -19,7 +19,7 @@ LL |     'a: { const { continue 'a } }
    = note: labels are unreachable through functions, closures, async blocks and modules
 
 error[E0435]: attempt to use a non-constant value in a constant
-  --> $DIR/cross-const-control-flow-125846.rs:41:14
+  --> $DIR/cross-const-control-flow-125846.rs:51:14
    |
 LL |     const { &x };
    |              ^ non-constant value
@@ -31,7 +31,7 @@ LL +     const x: /* Type */ = 1;
    |
 
 error[E0728]: `await` is only allowed inside `async` functions and blocks
-  --> $DIR/cross-const-control-flow-125846.rs:35:22
+  --> $DIR/cross-const-control-flow-125846.rs:45:22
    |
 LL |     const { async {}.await }
    |           -----------^^^^^--
@@ -39,41 +39,43 @@ LL |     const { async {}.await }
    |           |          only allowed inside `async` functions and blocks
    |           this is not `async`
 
-error[E0572]: return statement outside of function body
+error[E0807]: cannot return from inside a `const` initializer
   --> $DIR/cross-const-control-flow-125846.rs:4:13
    |
-LL | / fn foo() {
-LL | |     const { return }
-   | |           --^^^^^^-- the return is part of this body...
-LL | |
-LL | | }
-   | |_- ...not the enclosing function body
+LL |     const { return }
+   |             ^^^^^^
+
+error[E0807]: the `?` operator cannot be used to return from inside a `const` initializer
+  --> $DIR/cross-const-control-flow-125846.rs:12:14
+   |
+LL |         bar()?
+   |              ^
 
 error[E0268]: `break` outside of a loop or labeled block
-  --> $DIR/cross-const-control-flow-125846.rs:9:19
+  --> $DIR/cross-const-control-flow-125846.rs:19:19
    |
 LL |     'a: { const { break 'a } }
    |                   ^^^^^^^^ cannot `break` outside of a loop or labeled block
 
 error[E0268]: `break` outside of a loop or labeled block
-  --> $DIR/cross-const-control-flow-125846.rs:16:17
+  --> $DIR/cross-const-control-flow-125846.rs:26:17
    |
 LL |         const { break }
    |                 ^^^^^ cannot `break` outside of a loop or labeled block
 
 error[E0268]: `continue` outside of a loop
-  --> $DIR/cross-const-control-flow-125846.rs:22:19
+  --> $DIR/cross-const-control-flow-125846.rs:32:19
    |
 LL |     'a: { const { continue 'a } }
    |                   ^^^^^^^^^^^ cannot `continue` outside of a loop
 
 error[E0268]: `continue` outside of a loop
-  --> $DIR/cross-const-control-flow-125846.rs:29:17
+  --> $DIR/cross-const-control-flow-125846.rs:39:17
    |
 LL |         const { continue }
    |                 ^^^^^^^^ cannot `continue` outside of a loop
 
-error: aborting due to 9 previous errors
+error: aborting due to 10 previous errors
 
-Some errors have detailed explanations: E0268, E0435, E0572, E0728, E0767.
+Some errors have detailed explanations: E0268, E0435, E0728, E0767, E0807.
 For more information about an error, try `rustc --explain E0268`.

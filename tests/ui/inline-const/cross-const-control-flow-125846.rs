@@ -2,7 +2,17 @@
 
 fn foo() {
     const { return }
-    //~^ ERROR: return statement outside of function body
+    //~^ ERROR: cannot return from inside a `const` block
+}
+
+const fn bar() -> Result<(), ()> { Ok(()) }
+
+const fn question_mark_return() -> Result<(), ()> {
+    const {
+        bar()?
+        //~^ ERROR the `?` operator cannot be used to return from inside a `const` block
+    };
+    Ok(())
 }
 
 fn labelled_block_break() {
