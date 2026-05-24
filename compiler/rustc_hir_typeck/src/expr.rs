@@ -869,13 +869,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 let guaranteed = if let Some(desugar_kind) = expr.span.desugaring_kind()
                     && desugar_kind == DesugaringKind::QuestionMark
                 {
-                    self.tcx.dcx().emit_err(QuestionMarkInConst {
+                    self.dcx().emit_err(QuestionMarkInConst {
                         span: expr.span,
                         keyword: ccx.keyword_name(),
                     })
                 } else {
                     if self.find_nearest_return_scope(expr.hir_id).is_some() {
-                        self.tcx.dcx().emit_err(ReturnFromConst {
+                        self.dcx().emit_err(ReturnFromConst {
                             span: expr.span,
                             keyword: ccx.keyword_name(),
                         })
