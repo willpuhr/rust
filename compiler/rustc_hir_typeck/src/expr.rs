@@ -864,12 +864,14 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     ) -> Ty<'tcx> {
         if self.ret_coercion.is_none() {
             let ccx_opt = self.tcx.hir_body_const_context(self.body_id);
-
-            let error_guaranteed = match ccx_opt {
-                Some(ccx @ (ConstContext::Const { .. } | ConstContext::Static(_))) => {
-                    self.emit_return_from_const_context(expr, ccx)
-                }
-                _ => self.emit_return_outside_of_fn_body(expr, ReturnLikeStatementKind::Return),
+            let error_guaranteed = if let Some(ccx) = ccx_opt
+                && matches!(
+                    self.tcx.def_kind(self.body_id),
+                    DefKind::Static { .. } | DefKind::Const { .. } | DefKind::InlineConst
+                ) {
+                self.emit_return_from_const_context(expr, ccx)
+            } else {
+                self.emit_return_outside_of_fn_body(expr, ReturnLikeStatementKind::Return)
             };
 
             let expectation = match ccx_opt {
