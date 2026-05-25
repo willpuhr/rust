@@ -2387,6 +2387,14 @@ impl ConstContext {
             Self::ConstFn => "const fn",
         }
     }
+
+    pub fn kind_name(&self) -> ConstContextKind {
+        match self {
+            Self::Const { inline: true } => ConstContextKind::Inline,
+            Self::Static(..) | Self::Const { inline: false } => ConstContextKind::Initializer,
+            Self::ConstFn => ConstContextKind::Fn,
+        }
+    }
 }
 
 /// A colloquial, trivially pluralizable description of this const context for use in error
@@ -2407,6 +2415,22 @@ impl IntoDiagArg for ConstContext {
             ConstContext::ConstFn => "constant function",
             ConstContext::Static(_) => "static",
             ConstContext::Const { .. } => "constant",
+        }))
+    }
+}
+
+pub enum ConstContextKind {
+    Initializer,
+    Inline,
+    Fn,
+}
+
+impl IntoDiagArg for ConstContextKind {
+    fn into_diag_arg(self, _: &mut Option<std::path::PathBuf>) -> DiagArgValue {
+        DiagArgValue::Str(Cow::Borrowed(match self {
+            Self::Initializer => "initializer",
+            Self::Inline => "block",
+            Self::Fn => "function",
         }))
     }
 }

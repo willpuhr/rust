@@ -10,7 +10,7 @@ impl<Item, D: Debug + Clone> Foo for D {
     fn foo<'a>(&'a self) -> impl Debug {
     //~^ ERROR method `foo` is not a member of trait `Foo`
         const { return }
-//~^ ERROR return statement outside of function body
+//~^ ERROR cannot return from inside a `const` block
     }
 }
 

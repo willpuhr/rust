@@ -24,18 +24,13 @@ help: add missing generic argument
 LL | impl<Item, D: Debug + Clone> Foo<Item> for D {
    |                                 ++++++
 
-error[E0572]: return statement outside of function body
+error[E0807]: cannot return from inside a `const` block
   --> $DIR/ice-mir-const-qualif-125837.rs:12:17
    |
-LL | /     fn foo<'a>(&'a self) -> impl Debug {
-LL | |
-LL | |         const { return }
-   | |               --^^^^^^-- the return is part of this body...
-LL | |
-LL | |     }
-   | |_____- ...not the enclosing function body
+LL |         const { return }
+   |                 ^^^^^^
 
 error: aborting due to 3 previous errors
 
-Some errors have detailed explanations: E0107, E0407, E0572.
+Some errors have detailed explanations: E0107, E0407, E0807.
 For more information about an error, try `rustc --explain E0107`.

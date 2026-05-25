@@ -863,31 +863,21 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         expr: &'tcx hir::Expr<'tcx>,
     ) -> Ty<'tcx> {
         if self.ret_coercion.is_none() {
-            let expectation = if let Some(ccx) = self.tcx.hir_body_const_context(self.body_id)
-                && matches!(ccx, ConstContext::Const { .. } | ConstContext::Static(_))
-            {
-                let guaranteed = if let Some(desugar_kind) = expr.span.desugaring_kind()
-                    && desugar_kind == DesugaringKind::QuestionMark
-                {
-                    self.dcx().emit_err(QuestionMarkInConst {
-                        span: expr.span,
-                        keyword: ccx.keyword_name(),
-                    })
-                } else {
-                    if self.find_nearest_return_scope(expr.hir_id).is_some() {
-                        self.dcx().emit_err(ReturnFromConst {
-                            span: expr.span,
-                            keyword: ccx.keyword_name(),
-                        })
-                    } else {
-                        self.emit_return_outside_of_fn_body(expr, ReturnLikeStatementKind::Return)
-                    }
-                };
-                // Suppresses incorrect and unnecessary "E0283: type annotations needed"
-                ExpectHasType(Ty::new_error(self.tcx, guaranteed))
-            } else {
-                self.emit_return_outside_of_fn_body(expr, ReturnLikeStatementKind::Return);
-                NoExpectation
+            let ccx_opt = self.tcx.hir_body_const_context(self.body_id);
+
+            let error_guaranteed = match ccx_opt {
+                Some(ccx @ (ConstContext::Const { .. } | ConstContext::Static(_))) => {
+                    self.emit_return_from_const_context(expr, ccx)
+                }
+                _ => self.emit_return_outside_of_fn_body(expr, ReturnLikeStatementKind::Return),
+            };
+
+            let expectation = match ccx_opt {
+                Some(ConstContext::Const { inline: false } | ConstContext::Static(..)) => {
+                    // Initializers have a declared type leading to confusing and unnecessary "E0283: type annotations needed"
+                    ExpectHasType(Ty::new_error(self.tcx, error_guaranteed))
+                }
+                _ => NoExpectation,
             };
 
             if let Some(e) = expr_opt {
@@ -1080,6 +1070,30 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
 
         self.dcx().emit_err(err)
+    }
+
+    fn emit_return_from_const_context(
+        &self,
+        expr: &hir::Expr<'_>,
+        ccx: ConstContext,
+    ) -> ErrorGuaranteed {
+        if let Some(desugar_kind) = expr.span.desugaring_kind()
+            && desugar_kind == DesugaringKind::QuestionMark
+        {
+            self.dcx().emit_err(QuestionMarkInConst {
+                span: expr.span,
+                keyword: ccx.keyword_name(),
+                const_context_kind: ccx.kind_name(),
+            })
+        } else if self.find_nearest_return_scope(expr.hir_id).is_some() {
+            self.dcx().emit_err(ReturnFromConst {
+                span: expr.span,
+                keyword: ccx.keyword_name(),
+                const_context_kind: ccx.kind_name(),
+            })
+        } else {
+            self.emit_return_outside_of_fn_body(expr, ReturnLikeStatementKind::Return)
+        }
     }
 
     fn point_at_return_for_opaque_ty_error(

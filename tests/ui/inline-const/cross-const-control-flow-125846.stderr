@@ -39,13 +39,13 @@ LL |     const { async {}.await }
    |           |          only allowed inside `async` functions and blocks
    |           this is not `async`
 
-error[E0807]: cannot return from inside a `const` initializer
+error[E0807]: cannot return from inside a `const` block
   --> $DIR/cross-const-control-flow-125846.rs:4:13
    |
 LL |     const { return }
    |             ^^^^^^
 
-error[E0807]: the `?` operator cannot be used to return from inside a `const` initializer
+error[E0807]: the `?` operator cannot be used to return from inside a `const` block
   --> $DIR/cross-const-control-flow-125846.rs:12:14
    |
 LL |         bar()?

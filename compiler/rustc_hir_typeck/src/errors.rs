@@ -10,7 +10,7 @@ use rustc_errors::{
     EmissionGuarantee, IntoDiagArg, Level, MultiSpan, Subdiagnostic, msg,
 };
 use rustc_hir as hir;
-use rustc_hir::ExprKind;
+use rustc_hir::{ConstContextKind, ExprKind};
 use rustc_macros::{Diagnostic, Subdiagnostic};
 use rustc_middle::ty::{self, Ty};
 use rustc_span::edition::{Edition, LATEST_STABLE_EDITION};
@@ -101,19 +101,21 @@ impl IntoDiagArg for ReturnLikeStatementKind {
 }
 
 #[derive(Diagnostic)]
-#[diag("the `?` operator cannot be used to return from inside a `{$keyword}` initializer", code = E0807)]
+#[diag("the `?` operator cannot be used to return from inside a `{$keyword}` {$const_context_kind}", code = E0807)]
 pub(crate) struct QuestionMarkInConst {
     #[primary_span]
     pub span: Span,
     pub keyword: &'static str,
+    pub const_context_kind: ConstContextKind,
 }
 
 #[derive(Diagnostic)]
-#[diag("cannot return from inside a `{$keyword}` initializer", code = E0807)]
+#[diag("cannot return from inside a `{$keyword}` {$const_context_kind}", code = E0807)]
 pub(crate) struct ReturnFromConst {
     #[primary_span]
     pub span: Span,
     pub keyword: &'static str,
+    pub const_context_kind: ConstContextKind,
 }
 
 #[derive(Diagnostic)]
